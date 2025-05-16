@@ -1,6 +1,4 @@
-FROM python:3.10-slim
-
-# Install system dependencies (Poppler is needed for PDF to image conversion)
+# Install system dependencies (Poppler, Tesseract, LibreOffice for .doc conversion)
 RUN apt-get update && apt-get install -y \
     poppler-utils \
     tesseract-ocr \
@@ -9,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libjpeg-dev \
     zlib1g-dev \
+    libreoffice \
     && apt-get clean
 
 # Set working directory
