@@ -4,7 +4,9 @@ from pdf2image import convert_from_bytes
 from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
 from docx import Document
+import textract
 import io
+import os
 
 app = Flask(__name__)
 
@@ -34,6 +36,17 @@ def ocr():
             doc = Document(file)
             text = "\n".join([para.text for para in doc.paragraphs])
             return jsonify({"text": text.strip()})
+
+        elif filename.endswith(".doc"):
+            # Save to temp file since textract can't handle stream directly
+            temp_path = "/tmp/temp.doc"
+            file.save(temp_path)
+
+            # Use textract to extract text from .doc
+            raw_text = textract.process(temp_path).decode("utf-8")
+            os.remove(temp_path)
+
+            return jsonify({"text": raw_text.strip()})
 
         elif filename.endswith((".png", ".jpg", ".jpeg")):
             image = Image.open(file.stream)
