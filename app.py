@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import pytesseract
 from pdf2image import convert_from_bytes
 from PIL import Image
-import io
+from concurrent.futures import ThreadPoolExecutor
 
 app = Flask(__name__)
 
@@ -19,14 +19,14 @@ def ocr():
     try:
         pdf_bytes = file.read()
 
-        # Convert PDF to images (one per page)
-        images = convert_from_bytes(pdf_bytes)
+        # Convert PDF to images at lower DPI for faster rendering
+        images = convert_from_bytes(pdf_bytes, dpi=120)
 
-        # OCR each page
-        text = ""
-        for page in images:
-            text += pytesseract.image_to_string(page) + "\n"
+        # Use thread pool to parallelize OCR
+        with ThreadPoolExecutor() as executor:
+            results = executor.map(pytesseract.image_to_string, images)
 
+        text = "\n".join(results)
         return jsonify({"text": text.strip()})
 
     except Exception as e:
