@@ -3,6 +3,8 @@ import pytesseract
 from pdf2image import convert_from_bytes
 from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
+from docx import Document
+import io
 
 app = Flask(__name__)
 
@@ -10,24 +12,36 @@ app = Flask(__name__)
 def ocr():
     print("==== Incoming Request ====")
     print("FILES:", request.files)
-    print("FORM:", request.form)
 
     file = request.files.get('data')
     if not file:
         return jsonify({"error": "No file provided"}), 400
 
+    filename = file.filename.lower()
+
     try:
-        pdf_bytes = file.read()
+        if filename.endswith(".pdf"):
+            pdf_bytes = file.read()
+            images = convert_from_bytes(pdf_bytes, dpi=120)
 
-        # Convert PDF to images at lower DPI for faster rendering
-        images = convert_from_bytes(pdf_bytes, dpi=120)
+            with ThreadPoolExecutor() as executor:
+                results = executor.map(pytesseract.image_to_string, images)
 
-        # Use thread pool to parallelize OCR
-        with ThreadPoolExecutor() as executor:
-            results = executor.map(pytesseract.image_to_string, images)
+            text = "\n".join(results)
+            return jsonify({"text": text.strip()})
 
-        text = "\n".join(results)
-        return jsonify({"text": text.strip()})
+        elif filename.endswith(".docx"):
+            doc = Document(file)
+            text = "\n".join([para.text for para in doc.paragraphs])
+            return jsonify({"text": text.strip()})
+
+        elif filename.endswith((".png", ".jpg", ".jpeg")):
+            image = Image.open(file.stream)
+            text = pytesseract.image_to_string(image)
+            return jsonify({"text": text.strip()})
+
+        else:
+            return jsonify({"error": f"Unsupported file type: {filename}"}), 400
 
     except Exception as e:
         print("OCR ERROR:", str(e))
