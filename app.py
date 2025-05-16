@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 @app.route('/ocr', methods=['POST'])
 def ocr():
-    file = request.files.get('file')
+    file = request.files.get('data')  # <-- This now matches n8n's field
     if not file:
         return jsonify({"error": "No file provided"}), 400
 
