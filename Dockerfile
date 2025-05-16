@@ -1,14 +1,27 @@
 FROM python:3.10-slim
 
+# Install system dependencies (Poppler is needed for PDF to image conversion)
 RUN apt-get update && apt-get install -y \
+    poppler-utils \
     tesseract-ocr \
     libtesseract-dev \
     libleptonica-dev \
-    poppler-utils \
+    build-essential \
+    libjpeg-dev \
+    zlib1g-dev \
     && apt-get clean
 
+# Set working directory
 WORKDIR /app
+
+# Copy source code
 COPY . /app
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Expose the server port
 EXPOSE 5000
+
+# Run the app
 CMD ["python", "app.py"]
