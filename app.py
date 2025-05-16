@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import pytesseract
+from pdf2image import convert_from_bytes
 from PIL import Image
 import io
 
@@ -8,17 +9,26 @@ app = Flask(__name__)
 @app.route('/ocr', methods=['POST'])
 def ocr():
     print("==== Incoming Request ====")
-    print("FILES:", request.files)         # <-- this shows what keys are sent
-    print("FORM:", request.form)           # <-- this confirms form-data is present
+    print("FILES:", request.files)
+    print("FORM:", request.form)
 
     file = request.files.get('data')
     if not file:
         return jsonify({"error": "No file provided"}), 400
 
     try:
-        image = Image.open(file.stream)
-        text = pytesseract.image_to_string(image)
-        return jsonify({"text": text})
+        pdf_bytes = file.read()
+
+        # Convert PDF to images (one per page)
+        images = convert_from_bytes(pdf_bytes)
+
+        # OCR each page
+        text = ""
+        for page in images:
+            text += pytesseract.image_to_string(page) + "\n"
+
+        return jsonify({"text": text.strip()})
+
     except Exception as e:
         print("OCR ERROR:", str(e))
         return jsonify({"error": str(e)}), 500
