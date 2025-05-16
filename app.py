@@ -7,23 +7,20 @@ app = Flask(__name__)
 
 @app.route('/ocr', methods=['POST'])
 def ocr():
-    # Debug: Log incoming files and form data
     print("==== Incoming Request ====")
-    print("FILES:", request.files)
-    print("FORM:", request.form)
-    
-    file = request.files.get('data')  # Must match n8n's form field name
+    print("FILES:", request.files)         # <-- this shows what keys are sent
+    print("FORM:", request.form)           # <-- this confirms form-data is present
+
+    file = request.files.get('data')
     if not file:
         return jsonify({"error": "No file provided"}), 400
 
     try:
-        # Read and OCR the image
         image = Image.open(file.stream)
         text = pytesseract.image_to_string(image)
         return jsonify({"text": text})
-
     except Exception as e:
-        print("ERROR during OCR:", str(e))
+        print("OCR ERROR:", str(e))
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
